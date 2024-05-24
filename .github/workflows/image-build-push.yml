@@ -44,6 +44,8 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            s3_bucket=${{ vars.S3_BUCKET }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
