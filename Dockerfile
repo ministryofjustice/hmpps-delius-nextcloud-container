@@ -1,8 +1,17 @@
 FROM nextcloud:latest
 
-ARG s3_bucket
+RUN apt-get update && apt-get install -y \
+    unzip \
+    curl && \
+    apt clean
 
-RUN s3 cp s3://$s3_bucket/config/ /var/www/config/ --recursive
-RUN s3 cp s3://$s3_bucket/html/ /var/www/html/ --recursive
-RUN s3 cp s3://$s3_bucket/custom_apps/ /var/www/custom_apps/ --recursive
-RUN s3 cp s3://$s3_bucket/themes/ /var/www/themes/ --recursive
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    ./aws/install
+
+COPY ./pre-entrypoint.sh /pre-entrypoint.sh
+
+RUN chmod +x /pre-entrypoint.sh
+
+ENTRYPOINT ["/pre-entrypoint.sh"]
+CMD ["apache2-foreground"]
