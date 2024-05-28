@@ -1,9 +1,6 @@
 name: "Reusable: Build push an image"
 on:
   workflow_dispatch:
-    inputs:
-      jitbit_version:
-        type: string
   pull_request:
     branches:
       - main
