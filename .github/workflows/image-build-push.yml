@@ -1,0 +1,144 @@
+name: "Reusable: Build push an image"
+on:
+  workflow_dispatch:
+    inputs:
+      jitbit_version:
+        type: string
+  pull_request:
+    branches:
+      - main
+    types: [opened, edited, reopened, synchronize, closed]
+    paths:
+      - 'Dockerfile'
+      - '.github/workflows/image-build-push.yml'
+
+jobs:
+  build-image:
+    name: Build Image
+    permissions:
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4.0.1
+        with:
+          role-to-assume: "arn:aws:iam::${{ vars.IMG_BUILD_PUSH_ACCOUNT_ID }}:role/modernisation-platform-oidc-cicd"
+          role-session-name: "hmpps-delius-nextcloud-container-${{ github.run_number }}"
+          aws-region: "eu-west-2"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image and export
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          tags: delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}
+          outputs: type=docker,dest=/tmp/delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}.tar
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}.tar
+          path: /tmp/delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}.tar
+          retention-days: 1
+
+  scan-image:
+    name: Scan Image
+    needs: build-image
+    permissions:
+      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}.tar
+
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@b2933f565dbc598b29947660e66259e3c7bc8561
+        with:
+          format: 'sarif'
+          severity: 'CRITICAL,HIGH'
+          limit-severities-for-sarif: 'true'
+          image-ref: 'delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}'
+          exit-code: '1'
+          scan-type: 'image'
+          trivyignores: '.trivyignore'
+          ignore-unfixed: 'true'
+          output: 'trivy-results.sarif'
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: failure() # If Trivy found vulnerabilities
+        with:
+          sarif_file: 'trivy-results.sarif'
+  
+  push-image:
+    name: Publish image
+    needs: [build-image, scan-image]
+    permissions:
+      id-token: write
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4.0.1
+        with:
+          role-to-assume: "arn:aws:iam::${{ vars.IMG_BUILD_PUSH_ACCOUNT_ID }}:role/modernisation-platform-oidc-cicd"
+          role-session-name: "hmpps-delius-nextcloud-container-${{ github.run_number }}"
+          aws-region: "eu-west-2"
+
+      - name: Load image from artifact
+        run: |
+            docker load --input /tmp/delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Tag image with latest
+        if: (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true) || github.event.ref == 'refs/heads/main'
+        run: |
+            docker tag delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }} ${{ vars.CORE_SHARED_SERVICES_ACCOUNT }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/delius-nextcloud:latest
+
+      - name: Tag image with github run id and attempt
+        run: | 
+           docker tag delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }} ${{ vars.CORE_SHARED_SERVICES_ACCOUNT }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Login to ECR
+        run: aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin ${{ vars.CORE_SHARED_SERVICES_ACCOUNT }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
+
+      - name: Push images to ECR
+        run: docker push --all-tags ${{ vars.CORE_SHARED_SERVICES_ACCOUNT }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/delius-nextcloud
+
+      - name: Output image tags created (run id)
+        run: echo "${{ github.run_id }}-${{ github.run_attempt }}"
+
+      - name: Output image tags created (latest)
+        if: (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true) || github.event.ref == 'refs/heads/main'
+        run: echo "latest"
