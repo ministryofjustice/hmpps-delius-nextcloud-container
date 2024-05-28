@@ -37,15 +37,15 @@ jobs:
         with:
           context: .
           tags: delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}
-          outputs: type=docker,dest=/tmp/delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}.tar
+          outputs: type=docker,dest=/tmp/delius-nextcloud-${{ github.run_id }}-${{ github.run_attempt }}.tar
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}.tar
-          path: /tmp/delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}.tar
+          name: delius-nextcloud-${{ github.run_id }}-${{ github.run_attempt }}.tar
+          path: /tmp/delius-nextcloud-${{ github.run_id }}-${{ github.run_attempt }}.tar
           retention-days: 1
 
   scan-image:
@@ -63,12 +63,12 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}
+          name: delius-nextcloud-${{ github.run_id }}-${{ github.run_attempt }}
           path: /tmp
 
       - name: Load image
         run: |
-          docker load --input /tmp/delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}.tar
+          docker load --input /tmp/delius-nextcloud-${{ github.run_id }}-${{ github.run_attempt }}.tar
 
       - name: Trivy scan
         uses: aquasecurity/trivy-action@b2933f565dbc598b29947660e66259e3c7bc8561
@@ -104,7 +104,7 @@ jobs:
       - name: Download Artifact
         uses: actions/download-artifact@v4
         with:
-          name: delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}
+          name: delius-nextcloud-${{ github.run_id }}-${{ github.run_attempt }}
           path: /tmp
 
       - name: Configure AWS Credentials
@@ -116,7 +116,7 @@ jobs:
 
       - name: Load image from artifact
         run: |
-            docker load --input /tmp/delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}
+            docker load --input /tmp/delius-nextcloud-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Tag image with latest
         if: (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true) || github.event.ref == 'refs/heads/main'
