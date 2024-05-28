@@ -44,7 +44,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: delius-nextcloud-${{ github.run_id }}-${{ github.run_attempt }}.tar
+          name: delius-nextcloud-${{ github.run_id }}-${{ github.run_attempt }}
           path: /tmp/delius-nextcloud-${{ github.run_id }}-${{ github.run_attempt }}.tar
           retention-days: 1
 
