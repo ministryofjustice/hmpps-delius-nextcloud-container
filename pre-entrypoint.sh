@@ -15,7 +15,7 @@ else
 fi
 
 # load config from s3 into nextcloud
-
+chown -R www-data:www-data /var/www/html/config
 su -s /bin/bash www-data -c "php occ config:import /var/www/html/config/config.json"
 
 # Execute the original entrypoint with its arguments
