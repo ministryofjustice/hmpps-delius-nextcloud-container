@@ -10,6 +10,7 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
     ./aws/install
 
 COPY ./pre-entrypoint.sh /pre-entrypoint.sh
+COPY ./hooks/ /docker-entrypoint-hooks.d
 
 RUN chmod +x /pre-entrypoint.sh
 
