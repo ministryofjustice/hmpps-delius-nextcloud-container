@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  nextcloud:
+    build: .
+    platform: linux/amd64
+    ports:
+      - 8080:80
+    volumes:
+      - ./html:/var/www/html
+      - ./data:/var/www/html/data
+      - ./custom_apps:/var/www/html/custom_apps 
+      - ./themes:/var/www/html/themes
+      - ./config:/var/www/html/config
+    environment:
+      - MYSQL_HOST=db
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=secret
+      - NEXTCLOUD_ADMIN_USER=admin
+      - NEXTCLOUD_ADMIN_PASSWORD=admin
+      - NEXTCLOUD_TRUSTED_DOMAINS=localhost
+    depends_on:
+      - db
+
+  db:
+    image: mariadb:latest
+    environment:
+      - MYSQL_ROOT_PASSWORD=secret
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=secret
+    volumes:
+      - ./db:/var/lib/mysql
