@@ -1,4 +1,4 @@
-FROM nextcloud:latest
+FROM nextcloud:29-apache
 
 RUN apt-get update && apt-get install -y \
     unzip \
@@ -12,7 +12,7 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
 COPY ./pre-entrypoint.sh /pre-entrypoint.sh
 COPY ./hooks/ /docker-entrypoint-hooks.d
 
-RUN chmod +x /pre-entrypoint.sh
+RUN chmod +x -R /docker-entrypoint-hooks.d
 
-ENTRYPOINT ["/pre-entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["apache2-foreground"]
