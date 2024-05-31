@@ -1,3 +1,4 @@
+set +xe
 if [ -z "$S3_BUCKET_CONFIG" ]; then
     echo "S3_BUCKET_CONFIG is not set. will not copy config from S3."
 else
