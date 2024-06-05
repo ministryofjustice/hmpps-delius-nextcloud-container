@@ -6,7 +6,7 @@ set -e
 
 # Check if Nextcloud is installed
 if php occ status | grep -q "installed: true"; then
-    echo "Nextcloud is already running startup scripts"
+    echo "Nextcloud is already installed - running startup scripts"
 
     if [ -z "$S3_BUCKET_CONFIG" ]; then
         echo "S3_BUCKET_CONFIG is not set. Will not copy config from S3."
@@ -30,7 +30,7 @@ if php occ status | grep -q "installed: true"; then
     LDAP_PASSWORD=$(aws secretsmanager get-secret-value --secret-id "${LDAP_PASSWORD_SECRET_ARN}" --query SecretString --output text)
 
     # Set LDAP password
-    php occ ldap:set-config s01 ldapAgentPassword "${LDAP_PASSWORD}"
+    php occ ldap:set-config s01 ldapAgentPassword "${LDAP_PASSWORD}" || true
 else
     echo "Nextcloud is not installed yet. Skipping startup scripts."
     echo "pre/post installation scripts will run after installation instead."
