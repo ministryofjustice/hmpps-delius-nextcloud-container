@@ -25,9 +25,9 @@ if php occ status | grep -q "installed: true"; then
     # Check if LDAP_PASSWORD_SECRET_ARN is set
     if [ -z "$LDAP_PASSWORD_SECRET_ARN" ]; then
         echo "LDAP_PASSWORD_SECRET_ARN is not set. Aborting."
+    else
+      LDAP_PASSWORD=$(aws secretsmanager get-secret-value --secret-id "${LDAP_PASSWORD_SECRET_ARN}" --query SecretString --output text)
     fi
-
-    LDAP_PASSWORD=$(aws secretsmanager get-secret-value --secret-id "${LDAP_PASSWORD_SECRET_ARN}" --query SecretString --output text)
 
     # Set LDAP password
     php occ ldap:set-config s01 ldapAgentPassword "${LDAP_PASSWORD}" || true
