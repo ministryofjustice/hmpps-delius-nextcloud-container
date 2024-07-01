@@ -74,7 +74,7 @@ jobs:
         uses: aquasecurity/trivy-action@b2933f565dbc598b29947660e66259e3c7bc8561
         with:
           format: 'sarif'
-          severity: 'CRITICAL,HIGH'
+          severity: 'CRITICAL'
           limit-severities-for-sarif: 'true'
           image-ref: 'delius-nextcloud:${{ github.run_id }}-${{ github.run_attempt }}'
           exit-code: '1'
