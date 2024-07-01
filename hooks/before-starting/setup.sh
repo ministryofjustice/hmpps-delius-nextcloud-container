@@ -16,7 +16,7 @@ if php occ status | grep -q "installed: true"; then
     fi
 
     # Set ownership of the config directory
-    chown -R www-data:www-data /var/www/html/
+    chown -R www-data:www-data /var/www/
 
     # Import the Nextcloud config
     cd /var/www/html/
