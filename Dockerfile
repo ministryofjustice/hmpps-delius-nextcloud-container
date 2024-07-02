@@ -1,5 +1,5 @@
 #FROM nextcloud:29.0.0-apache
-FROM nextcloud:20.0.9-apache
+FROM nextcloud:21-apache
 
 RUN apt-get update && apt-get install -y \
     unzip \
